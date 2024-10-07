@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "coolkit.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    fathom.ai/deployed-version: {{ .Values.image.tag }}
+    {{- include "coolkit.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "coolkit.fullname" . }}-headless
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "coolkit.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "coolkit.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "coolkit.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{ if .Values.env }}
+          env:
+            {{- toYaml .Values.env | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            - name: observability
+              containerPort: 2345
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: observability
+              periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: observability
+              periodSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: observability
+              failureThreshold: 30
+              periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.affinity.podAntiAffinity.enabled }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: "app.kubernetes.io/name"
+                  operator: In
+                  values:
+                  - {{ include "coolkit.fullname" . }}
+                - key: "app.kubernetes.io/instance"
+                  operator: In
+                  values:
+                  - {{ .Release.Name }}
+                - key: "fathom.ai/track"
+                  operator: In
+                  values:
+                  - {{ .Values.canary.track }}
+              topologyKey: "kubernetes.io/hostname"
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{ if .Values.topologySpreadConstraints.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: {{ .Values.topologySpreadConstraints.topologyKey }}
+          whenUnsatisfiable: {{ .Values.topologySpreadConstraints.whenUnsatisfiable }} # We will schedule *even if* the skew is off.
+          labelSelector:
+            matchLabels:
+              {{- include "coolkit.selectorLabels" . | nindent 14 }}
+      {{- end }}

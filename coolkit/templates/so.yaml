@@ -1,0 +1,29 @@
+{{- if .Values.autoscaling.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "coolkit.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "coolkit.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ include "coolkit.fullname" . }}
+  minReplicaCount: {{ .Values.autoscaling.minReplicas }}
+  maxReplicaCount: {{ .Values.autoscaling.maxReplicas }}
+  cooldownPeriod: {{ .Values.autoscaling.keda.cooldownPeriod }}
+  pollingInterval: {{ .Values.autoscaling.keda.pollingInterval }}
+  advanced:
+    restoreToOriginalReplicaCount: false # If SO is deleted, we don't want to restore the original replica count (for safety)
+    {{- if .Values.autoscaling.keda.horizontalPodAutoscalerConfig }}
+    horizontalPodAutoscalerConfig: 
+      {{- toYaml .Values.autoscaling.keda.horizontalPodAutoscalerConfig | nindent 6 }}
+    {{- end }}
+  triggers:
+    {{- range .Values.autoscaling.keda.triggers }}
+    - type: {{ .type }}
+      metricType: {{ .metricType }}
+      metadata:
+        {{- toYaml .metadata | nindent 8 }}
+    {{- end }}
+{{- end }}

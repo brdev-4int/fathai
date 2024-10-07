@@ -1,0 +1,17 @@
+{{- if .Values.service.additionalHeadlessService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "coolkit.fullname" . }}-headless
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "coolkit.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: {{ .Values.service.port }}
+      name: http
+  selector:
+    {{- include "coolkit.selectorLabels" . | nindent 4 }}
+{{- end }}
