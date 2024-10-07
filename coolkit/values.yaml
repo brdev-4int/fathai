@@ -21,7 +21,7 @@ env:
   - name: CLOUD_DB_USER
     value: "myuser"
   - name: CLOUD_DB_DATABASE
-    vale: "coolkit"
+    value: "coolkit"
   - name: CLOUD_DB_PASSWORD
     valueFrom:
       secretKeyRef:
