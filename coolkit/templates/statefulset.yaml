@@ -36,10 +36,10 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{ if .Values.env }}
           env:
             {{- toYaml .Values.env | nindent 12 }}
-          {{- end }}
+            - name: HEADLESS_SERVICE_FOR_POD_ENDPOINTS
+              value: {{ include "coolkit.fullname" . }}-headless:{{ .Values.service.port }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
