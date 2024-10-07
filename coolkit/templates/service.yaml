@@ -16,5 +16,9 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
+    - port: 2345
+      targetPort: observability
+      protocol: TCP
+      name: observability
   selector:
     {{- include "coolkit.selectorLabels" . | nindent 4 }}

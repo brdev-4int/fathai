@@ -25,7 +25,7 @@ env:
   - name: CLOUD_DB_PASSWORD
     valueFrom:
       secretKeyRef:
-        name: coolkit-secrets-from-vault
+        name: coolkit-secrets
         key: CLOUD_DB_PASSWORD
 
 serviceAccount:
